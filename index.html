@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+</head>
+<body>
+  <form id="expense-form">
+    <label for="amount">Choose expense amount</label>
+    <input id="amount" type="number" min="0.01" step="0.01" required>
+
+    <label for="description">Choose description</label>
+    <input id="description" type="text" required>
+
+    <label for="category">Choose a category</label>
+    <select id="category" required>
+      <option value="">Select category</option>
+      <option value="Movie">Movie</option>
+      <option value="Food">Food</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <button id="submit-button" type="submit">Add Expense</button>
+  </form>
+
+  <ul id="expense-list"></ul>
+
+  <script>
+    const storageKey = "expense-tracker-expenses";
+    const form = document.getElementById("expense-form");
+    const amountInput = document.getElementById("amount");
+    const descriptionInput = document.getElementById("description");
+    const categoryInput = document.getElementById("category");
+    const submitButton = document.getElementById("submit-button");
+    const expenseList = document.getElementById("expense-list");
+
+    let expenses = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    let editingExpenseId = null;
+
+    function saveExpenses() {
+      localStorage.setItem(storageKey, JSON.stringify(expenses));
+    }
+
+    function renderExpenses() {
+      expenseList.replaceChildren();
+
+      expenses.forEach((expense) => {
+        const item = document.createElement("li");
+        item.append(document.createTextNode(`${expense.amount} - ${expense.category} - ${expense.description} `));
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "Delete Expense";
+        deleteButton.addEventListener("click", () => {
+          expenses = expenses.filter((entry) => entry.id !== expense.id);
+          if (editingExpenseId === expense.id) resetForm();
+          saveExpenses();
+          renderExpenses();
+        });
+
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.textContent = "Edit Expense";
+        editButton.addEventListener("click", () => {
+          editingExpenseId = expense.id;
+          amountInput.value = expense.amount;
+          descriptionInput.value = expense.description;
+          categoryInput.value = expense.category;
+          submitButton.textContent = "Edit Expense";
+        });
+
+        item.append(deleteButton, document.createTextNode(" "), editButton);
+        expenseList.append(item);
+      });
+    }
+
+    function resetForm() {
+      form.reset();
+      editingExpenseId = null;
+      submitButton.textContent = "Add Expense";
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const expense = {
+        id: editingExpenseId || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+        amount: Number(amountInput.value),
+        description: descriptionInput.value.trim(),
+        category: categoryInput.value
+      };
+
+      if (editingExpenseId) {
+        expenses = expenses.map((entry) => entry.id === editingExpenseId ? expense : entry);
+      } else {
+        expenses.push(expense);
+      }
+
+      saveExpenses();
+      renderExpenses();
+      resetForm();
+    });
+
+    renderExpenses();
+  </script>
+</body>
+</html>
